@@ -1,6 +1,8 @@
 module sqat::series1::A2_McCabe
 
 import lang::java::jdt::m3::AST;
+import Node;
+import util::ValueUI;
 import IO;
 
 /*
@@ -32,12 +34,36 @@ Sanity checks
 
 Bonus
 - write visualization using vis::Figure and vis::Render to render a histogram.
-
+constructor
 */
+
+map[int, int] ccHist;
 
 set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
 
+Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
+
+
 alias CC = rel[loc method, int cc];
+
+
+void main() {
+	Declaration d = testASTs();
+	visit(d) {
+		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
+			println(name);
+		}
+	}
+}
+
+map[int, int] addToHist(map[int, int] hist, int key) {
+	if (key notin hist) {
+		hist[key] = 1;
+	} else {
+		hist[key] += 1;
+	}
+	return hist;
+}
 
 CC cc(set[Declaration] decls) {
   CC result = {};
