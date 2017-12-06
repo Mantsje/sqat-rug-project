@@ -46,7 +46,7 @@ SLOC sloc(loc project) {
 }         
 
 void main() {
-	loc jpacman = |project://jpacman-framework/src|;
+	loc jpacman = |project://jpacman/src|;
 	//loc tests = |project://jpacman-framework/src/test|;
 	//loc source = |project://jpacman-framework/src/main|;
 	//loc singleFile = |project://jpacman-framework/src/test/java/nl/tudelft/jpacman/board/BasicUnit.java|;
