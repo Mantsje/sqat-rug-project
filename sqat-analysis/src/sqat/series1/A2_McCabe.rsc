@@ -42,10 +42,11 @@ constructor
 
 set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
 
-//Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
-Declaration testASTs() = createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman/Launcher.java|, true); 
+Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
+//Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/Launcher.java|, true); 
 
 alias CC = rel[loc method, int cc];
+alias flowGraph = tuple[int N, int E, int P];
 
 void main() {
 	map[int, int] ccHist;
@@ -53,18 +54,19 @@ void main() {
 	//print(CC);
 	Declaration d = testASTs();
 	loc l;
-	int cycomp;
+	flowGraph cycomp;
 	//anno loc Declaration@src;
 	//anno loc Declaration @ src;
 	visit(d) {
 		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
 			cycomp = getCC(impl);
+			<nodes, edges, points> = cycomp;
 			l = m.src;
-			if (cycomp > 1) {
-				print(l);
-				print("\t method == " + name + ", cc == ");
-				println(cycomp);
-			}
+			print(l);
+			print("\t method == " + name + ", cc == ");
+			println(cycomp);
+			println(edges - nodes + 2 * points);
+		
 			//ccHist = addToHist(ccHist, cycomp);
 			//CC += <l,cycomp>;
 		}
@@ -74,55 +76,97 @@ void main() {
 	}
 }
 
-int getCC(Statement branch) {
-	int cc = 1;
+flowGraph handleIf(Statement ifStatement) {
+	flowGraph result = <0, 0, 0>;
+	switch(ifStatement) {
+		case f:\if(Expression condition, Statement thenBranch): {
+			result = addFlowGraph(getCC(thenBranch), <3, 3, 0>);
+		}
+		case f:\if(Expression condition, Statement thenBranch, Statement elseBranch): {
+			result = addFlowGraph(getCC(thenBranch), getCC(elseBranch));
+			result = addFlowGraph(result, <4, 4, 0>);
+		}
+	}
+	print(result);
+	return result;
+}
 
-	visit(branch) {
-		case \if(Expression condition, Statement thenBranch): {
-			cc += getCC(thenBranch);
-			cc += 1;
+flowGraph handleFor(Statement forBody) {
+	flowGraph result = <3, 3, 0>;
+	return addFlowGraph(result, getCC(forBody));
+}
+
+flowGraph addFlowGraph(flowGraph a, flowGraph b) {
+	int n, e, p, n1, e1, p1;
+	<n,e,p> = a;
+	<n1, e1, p1> = b;
+	return <n+n1, e+e1, p+p1>;
+}
+
+flowGraph getCC(Statement branch) {
+	flowGraph total = <0, 0, 0>;
+	flowGraph interim;
+	
+	
+	visit(branch) {	
+		case r:\return(): {
+			total = addFlowGraph(total, <0, 0, 1>);
 		}
-		case \if(Expression condition, Statement thenBranch, Statement elseBranch): {
-			cc += getCC(thenBranch);
-			cc += getCC(elseBranch);
-			cc += 1;
-		}		
-		case \switch(Expression expression, list[Statement] statements): {
-			for(Statement s <- statements) {
-				cc += getCC(s);
-			}
-			cc += 1;
+		case r:\return(_): {
+			total = addFlowGraph(total, <0, 0, 1>);
 		}
-		case \do(Statement body, Expression condition): {
-			cc += 1;
+		case f:\if(_, _): {
+			total = addFlowGraph(total, handleIf(f));
 		}
-		case \while(Expression condition, Statement body): {
-			cc += getCC(body);
-			cc += 1;
+		case f:\if(_,  _, _): {
+			total = addFlowGraph(total, handleIf(f));
 		}
+		case \for(list[Expression] initializers, Expression condition, list[Expression] updaters, Statement body): {
+			total = addFlowGraph(total, handleFor(body));
+		}
+		case \for(list[Expression] initializers, list[Expression] updaters, Statement body): {
+			total = addFlowGraph(total, handleFor(body));
+		}
+		case \foreach(Declaration parameter, Expression collection, Statement body): {
+			total = addFlowGraph(total, handleFor(body));
+    	}
+		//case \switch(Expression expression, list[Statement] statements): {
+		//	for(Statement s <- statements) {
+		//		cc += getCC(s);
+		//	}
+		//	cc += 1;
+		//}
+
+		//case \while(Expression condition, Statement body): {
+		//	cc += getCC(body);
+		//	cc += 1;
+		//}
+		//case \do(Statement body, Expression condition): {
+		//	cc += 1;
+		//}
 		//case \case(Expression expression): {			NOT SURE ABOUT THIS
 		//	dosmth();
 		//}
 		//case \defaultCase(): {							AND THIS
 		//	dosmth();
 		//}
-		case \try(Statement body, list[Statement] catchClauses): {
-			cc += getCC(body);
-			for(Statement s <- catchClauses) {
-				cc += getCC(s);
-			}
-				cc += 1;
-		}
-		case \try(Statement body, list[Statement] catchClauses, Statement \finally): {
-			cc += getCC(body);
-			cc += getCC(\finally);
-			for(Statement s <- catchClauses) {
-				cc += getCC(s);
-				cc += 1;
-			}
-		}
+		//case \try(Statement body, list[Statement] catchClauses): {
+		//	cc += getCC(body);
+		//	for(Statement s <- catchClauses) {
+		//		cc += getCC(s);
+		//	}
+		//		cc += 1;
+		//}
+		//case \try(Statement body, list[Statement] catchClauses, Statement \finally): {
+		//	cc += getCC(body);
+		//	cc += getCC(\finally);
+		//	for(Statement s <- catchClauses) {
+		//		cc += getCC(s);
+		//		cc += 1;, 
+		//	}
+		//}
 	}
-	return cc;
+	return total;
 }	
 
 map[int, int] addToHist(map[int, int] hist, int key) {
