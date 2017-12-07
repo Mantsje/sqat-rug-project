@@ -42,8 +42,8 @@ constructor
 
 set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
 
-Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
-//Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/Launcher.java|, true); 
+//Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
+Declaration testASTs() = createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
 
 alias CC = rel[loc method, int cc];
 alias flowGraph = tuple[int N, int E, int P];
@@ -80,11 +80,13 @@ flowGraph handleIf(Statement ifStatement) {
 	flowGraph result = <0, 0, 0>;
 	switch(ifStatement) {
 		case f:\if(Expression condition, Statement thenBranch): {
-			result = addFlowGraph(getCC(thenBranch), <3, 3, 0>);
+			//result = addFlowGraph(getCC(thenBranch), <3, 3, 0>);
+			return <3,3,0>;
 		}
 		case f:\if(Expression condition, Statement thenBranch, Statement elseBranch): {
-			result = addFlowGraph(getCC(thenBranch), getCC(elseBranch));
-			result = addFlowGraph(result, <4, 4, 0>);
+			//result = addFlowGraph(getCC(thenBranch), getCC(elseBranch));
+			//result = addFlowGraph(result, <4, 4, 0>);
+			return <4, 4, 0>;
 		}
 	}
 	print(result);
@@ -93,7 +95,8 @@ flowGraph handleIf(Statement ifStatement) {
 
 flowGraph handleFor(Statement forBody) {
 	flowGraph result = <3, 3, 0>;
-	return addFlowGraph(result, getCC(forBody));
+	return result;
+	//return addFlowGraph(result, getCC(forBody));
 }
 
 flowGraph addFlowGraph(flowGraph a, flowGraph b) {
@@ -106,8 +109,7 @@ flowGraph addFlowGraph(flowGraph a, flowGraph b) {
 flowGraph getCC(Statement branch) {
 	flowGraph total = <0, 0, 0>;
 	flowGraph interim;
-	
-	
+
 	visit(branch) {	
 		case r:\return(): {
 			total = addFlowGraph(total, <0, 0, 1>);
