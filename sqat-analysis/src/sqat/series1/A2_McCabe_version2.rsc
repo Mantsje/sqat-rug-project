@@ -49,51 +49,91 @@ Declaration testASTs() = createAstFromFile(|project://jpacman/Test.java|, true);
 alias CC = rel[loc method, int cc];
 
 void main() {
-	map[int, int] ccHist;
-	CC relation;
-	//print(CC);
-	Declaration d = testASTs();
+	set[Declaration] s = {testASTs()};
+	CC result = cc(s);
+	//cc(jpacmanASTs());
+	//println("\nNow we print result:");
+	//println(result);
+	CCDist hist = ccDist(result);
+	println("\nThe histogram:");
+	println(hist);
+	
+	maxCC = max(hist<0>);
+	
+	for (<l, cirComp> <- result) {
+		if (cirComp == maxCC) {
+			print("cc of ");
+			print(maxCC);
+			print(" at location:  ");
+			println(l);
+		}
+	} 
+}
+
+
+CC cc(set[Declaration] decls) {
+	CC result = {};
+	int circomp;
 	loc l;
-	int cycomp;
+	for (Declaration d <- decls) {
+		x = doDeclaration(d);
+		result = result + x;
+	}
+	
+	// result is a CC (rel[loc method, int cc]) with every method with the accompanied circular complexity
+	return result;
+}
+
+map[int, int] addToHist(map[int, int] hist, int key) {
+	if (key notin hist) {
+		hist[key] = 1;
+	} else {
+		hist[key] += 1;
+	}
+	return hist;
+}
+
+alias CCDist = map[int cc, int freq];
+
+CCDist ccDist(CC cc) {
+	CCDist hist = ();
+	for (<l,cirComp> <- cc) {
+		if (cirComp notin hist) {
+			hist[cirComp] = 1;
+		} else {
+			hist[cirComp] += 1;
+		}
+	}
+	return hist;
+}
+
+CC doDeclaration(Declaration d) {
+	//Declaration d = testASTs();
+	CC locCC = {};
+	loc l;
+	int cirComp = 0;
 	//anno loc Declaration@src;
 	//anno loc Declaration @ src;
 	visit(d) {
 		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
-			cycomp = getCC(impl);
+			cirComp = calculateCC(impl);
 			l = m.src;
-			print(l);
-			print("\t method == " + name + ", cc == ");
-			println(cycomp);
-		
-			//ccHist = addToHist(ccHist, cycomp);
-			//CC += <l,cycomp>;
+			locCC = locCC + <l,cirComp>;
+			//print(l);
+			//print("\t method == " + name + ", cc == ");
+			//println(cirComp);
 		}
-		case \constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
+		case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
 			println("IF\'S CAN OCCUR IN CONSTRUCTOR?");
+			//cirComp = calculateCC(impl);
+			//l = c.src;
+			//locCC = locCC + <l,cirComp>;
 		}
 	}
+	return locCC;
 }
 
-int clauses(Expression e) {
-	int andOperators = 0;
-	visit(e) {
-		case \infix(Expression lhs, str operator, Expression rhs) :{
-			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
-		}
-		case \postfix(Expression operand, str operator) :{
-			// Don't think this is necessary, but to keep it general..?
-			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
-		}
-		case \prefix(str operator, Expression operand) :{
-			// Don't think this is necessary, but to keep it general..?
-			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
-		}	
-	}
-	// number of clauses == number of AND operators + 1
-	return 1 + andOperators;
-}
-
-int getCC(Statement branch) {
+int calculateCC(Statement branch) {
 	int decisionPoints = 0;
 	int exitPoints = 1;
 
@@ -121,27 +161,23 @@ int getCC(Statement branch) {
 		}
 	}
 	return decisionPoints - exitPoints + 2;
-}	
+}
 
-map[int, int] addToHist(map[int, int] hist, int key) {
-	if (key notin hist) {
-		hist[key] = 1;
-	} else {
-		hist[key] += 1;
+int clauses(Expression e) {
+	int andOperators = 0;
+	visit(e) {
+		case \infix(Expression lhs, str operator, Expression rhs) :{
+			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
+		}
+		case \postfix(Expression operand, str operator) :{
+			// Don't think this is necessary, but to keep it general..?
+			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
+		}
+		case \prefix(str operator, Expression operand) :{
+			// Don't think this is necessary, but to keep it general..?
+			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
+		}	
 	}
-	return hist;
-}
-
-CC cc(set[Declaration] decls) {
-  CC result = {};
-  
-  // to be done
-  
-  return result;
-}
-
-alias CCDist = map[int cc, int freq];
-
-CCDist ccDist(CC cc) {
-  // to be done
+	// number of clauses == number of AND operators + 1
+	return 1 + andOperators;
 }
