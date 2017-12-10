@@ -39,21 +39,28 @@ Bonus
 constructor
 */
 
-
-set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
-
+/* jpacman-framework statements */
+//set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
 //Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
+
+/* jpacman statements */
+set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman|, true);
 //Declaration testASTs() = createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman/board/Square.java|, true);
 Declaration testASTs() = createAstFromFile(|project://jpacman/Test.java|, true); 
 
 alias CC = rel[loc method, int cc];
 
 void main() {
-	set[Declaration] s = {testASTs()};
-	CC result = cc(s);
-	//cc(jpacmanASTs());
+	/*For Test.java*/
+	//set[Declaration] s = {testASTs()};
+	//CC result = cc(s);
+	
+	/*For entire eclipse project*/
+	CC result = cc(jpacmanASTs());
+	
 	//println("\nNow we print result:");
 	//println(result);
+	
 	CCDist hist = ccDist(result);
 	println("\nThe histogram:");
 	println(hist);
