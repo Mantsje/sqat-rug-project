@@ -47,7 +47,6 @@ set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman
 Declaration testASTs() = createAstFromFile(|project://jpacman/Test.java|, true); 
 
 alias CC = rel[loc method, int cc];
-alias flowGraph = tuple[int N, int E, int P];
 
 void main() {
 	map[int, int] ccHist;
