@@ -57,7 +57,7 @@ void main() {
 	flowGraph cycomp;
 	//anno loc Declaration@src;
 	//anno loc Declaration @ src;
-	visit(d) {
+	top-down-break visit(d) {
 		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
 			cycomp = getCC(impl);
 			<nodes, edges, points> = cycomp;

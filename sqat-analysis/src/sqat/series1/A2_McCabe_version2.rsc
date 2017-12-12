@@ -40,13 +40,13 @@ constructor
 */
 
 /* jpacman-framework statements */
-//set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
-//Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
+set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
+Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
 
 /* jpacman statements */
-set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman|, true);
+//set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true);
 //Declaration testASTs() = createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman/board/Square.java|, true);
-Declaration testASTs() = createAstFromFile(|project://jpacman/Test.java|, true); 
+//Declaration testASTs() = createAstFromFile(|project://jpacman/Test.java|, true); 
 
 alias CC = rel[loc method, int cc];
 
@@ -115,44 +115,43 @@ CCDist ccDist(CC cc) {
 }
 
 CC doDeclaration(Declaration d) {
-	//Declaration d = testASTs();
 	CC locCC = {};
 	loc l;
 	int cirComp = 0;
-	//anno loc Declaration@src;
-	//anno loc Declaration @ src;
 	visit(d) {
-		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
-			cirComp = calculateCC(impl);
+		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement body): {
+			cirComp = calculateCC(body);
 			l = m.src;
 			locCC = locCC + <l,cirComp>;
-			//print(l);
-			//print("\t method == " + name + ", cc == ");
-			//println(cirComp);
 		}
 		case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
-			println("IF\'S CAN OCCUR IN CONSTRUCTOR?");
-			//cirComp = calculateCC(impl);
-			//l = c.src;
-			//locCC = locCC + <l,cirComp>;
+			cirComp = calculateCC(impl);
+			l = c.src;
+			locCC = locCC + <l,cirComp>;
 		}
 	}
 	return locCC;
 }
 
-int calculateCC(Statement branch) {
+int calculateCC(Statement methodBody) {
 	int decisionPoints = 0;
 	int exitPoints = 1;
 
-	visit(branch) {
+	visit(methodBody) {
 		case \if(Expression condition, Statement thenBranch) :{
-			decisionPoints += clauses(condition);
+			decisionPoints += 1 + handleCondition(condition);
 		}	
 		case \if(Expression condition, Statement thenBranch, Statement elseBranch) :{
-			decisionPoints += clauses(condition);
+			decisionPoints += 1 + handleCondition(condition);
 		}	
+		case \case(Expression expression) : {
+			decisionPoints += 1;
+		}
+		case \defaultCase() : {
+			decisionPoints += 1;
+		}
 		case \for(list[Expression] initializers, Expression condition, list[Expression] updaters, Statement body): {
-			decisionPoints += clauses(condition);
+			decisionPoints += 1 + handleCondition(condition);
 		}
 		case \for(list[Expression] initializers, list[Expression] updaters, Statement body): {
 			decisionPoints += 1;
@@ -160,31 +159,40 @@ int calculateCC(Statement branch) {
 		case \foreach(Declaration parameter, Expression collection, Statement body): {
 			decisionPoints += 1;
 		}
-		case \return(Expression expression): {
-			println("returnStatement");
+		case \while(Expression condition, Statement body) : {
+			decisionPoints += 1 + handleCondition(condition);
 		}
-		case \return(): {
-			println("returnStatement");
+		case \do(Statement body, Expression condition) : {
+			decisionPoints += 1 + handleCondition(condition);
 		}
+    	case \try(Statement body, list[Statement] catchClauses) : {
+			decisionPoints += 1;
+    	}
+    	case \try(Statement body, list[Statement] catchClauses, Statement \finally) : {
+			decisionPoints += 2;
+    	}                                        
+    	case \catch(Declaration exception, Statement body) : {
+			decisionPoints += 1;
+    	}
 	}
 	return decisionPoints - exitPoints + 2;
 }
 
-int clauses(Expression e) {
-	int andOperators = 0;
+int handleCondition(Expression e) {
+	int operators = 0;
 	visit(e) {
 		case \infix(Expression lhs, str operator, Expression rhs) :{
-			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
+			operators += ((operator == "&&" || operator == "||") ? 2 : 0);
+			//operators += ((operator == "&" || operator == "|") ? 0 : 0);
 		}
 		case \postfix(Expression operand, str operator) :{
 			// Don't think this is necessary, but to keep it general..?
-			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
+			operators += ((operator == "&&" || operator == "||") ? 2 : 0);
 		}
 		case \prefix(str operator, Expression operand) :{
 			// Don't think this is necessary, but to keep it general..?
-			andOperators += ((operator == "AND" || operator == "&&") ? 1 : 0);
+			operators += ((operator == "&&" || operator == "||") ? 2 : 0);
 		}	
 	}
-	// number of clauses == number of AND operators + 1
-	return 1 + andOperators;
+	return operators;
 }
