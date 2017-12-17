@@ -1,12 +1,8 @@
 module sqat::series1::A3_CheckStyle
 
-import Java17ish;
-import Message;
 import IO;
-import lang::java::\syntax::Java15;
-import ParseTree;
-import util::ResourceMarkers;
-import util::FileSystem;
+import sqat::series1::longLines;
+import sqat::series1::customStyle;
 
 /*
 
@@ -46,50 +42,21 @@ Bonus:
 
 */
 
-//set[Message] checkStyle(loc project) {
-//  set[Message] result = {};
-//  
-//  // to be done
-//  // implement each check in a separate function called here. 
-//  
-//  return result;
-//}
+//loc testFile = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
 
-int findLineLength(str functionBody) {
-	println(functionBody);
-	return -1;
-}
-
-//Should return a map for every line and its linesize
-map[loc, int] methodLines(start[CompilationUnit] cu) {
-  result = ();
-  visit (cu) {
-    case theMethod:(MethodDec)`<MethodDecHead m> <MethodBody body>`: 
-       result[theMethod@\loc] = findLineLength("<body>");
-  } 
-  return result;
-}
-
-// analyze
-map[loc, int] bigLines(int threshold, map[loc, int] lineSize) 
-  = ( l: lineSize[l] | loc l <- lineSize, lineSize[l] >= threshold );
-
-
-// synthesize
-set[Message] warningsForLongLines(map[loc, int] ms) 
-  = { warning("Long line!", l) | l <- ms  };
-  
-
-// top-level
-set[Message] checkStyle(loc project) {
-  ms = ();
-  for (loc l <- files(project), l.extension == "java") {
-    ms += methodLines(parse(#start[CompilationUnit], l, allowAmbiguity=true));
-  }
-  return warningsForLongLines(bigLines(100, ms));
-}
-
-void main(loc project) {
-  //addMessageMarkers(checkStyle(project));
-  checkStyle(project);
+void checkStyle(loc project=|project://jpacman-framework/src|) {
+	llines = checkStyleLongLines(proj=project, threshold=80, printLines=false);
+	blines = checkStyleBraces(proj=project, printLocs=false);
+	
+	
+	
+	println("The long lines:");
+	for (line <- llines) {
+		println(line);
+	}
+	println("\nThe curly brace lines:");
+	for (line <- blines) {
+		println(line);
+	}
+	return;
 }

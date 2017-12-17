@@ -6,7 +6,6 @@ import String;
 import util::FileSystem;
 
 /* 
-
 Count Source Lines of Code (SLOC) per file:
 - ignore comments
 - ignore empty lines
@@ -34,6 +33,45 @@ Bonus:
 
 */
 
+/*************** Tests **********************/
+test bool testSLOCFile() {
+	loc file = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
+	list[str] allLines = readFileLines(file);
+	<linesOfCode, comments, blanks> = SLOCinLines(allLines);
+	result = blanks == 10;
+	result = result && (comments == 28);
+	result = result && (linesOfCode == 20);
+	return result;
+}
+
+test bool testSLOCEmpty() {
+	lines = ["\n", "\n", "\n"];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 3;
+	result = result && (comments == 0);
+	result = result && (linesOfCode == 0);
+	return result;
+}
+
+test bool testSLOCComment() {
+	lines = ["/* this is\n", "* a really nice\n", "* multiline comment*/ \n"];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 0;
+	result = result && (comments == 3);
+	result = result && (linesOfCode == 0);
+	return result;
+}
+
+test bool testSLOCLines() {
+	lines = ["int x = 4;\n", "/* init variable y */ int y = 42;\n", " \n  "];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 1;
+	result = result && (comments == 0);
+	result = result && (linesOfCode == 2);
+	return result;
+}
+
+/*************** End Tests **********************/
 
 alias SLOC = map[loc file, int sloc];
 
@@ -41,15 +79,10 @@ SLOC sloc(loc project) {
 	SLOC result = ();
   	FileSystem fs = crawl(project);
 	result = filterFiles(fs);
-	
 	return result;
 }         
 
-void main() {
-	loc jpacman = |project://jpacman/src|;
-	//loc tests = |project://jpacman-framework/src/test|;
-	//loc source = |project://jpacman-framework/src/main|;
-	//loc singleFile = |project://jpacman-framework/src/test/java/nl/tudelft/jpacman/board/BasicUnit.java|;
+void main(loc proj=|project://jpacman-framework/src|) {
 	SLOC res = sloc(jpacman);
 	for(f <- res) {
 		print(f);
@@ -57,11 +90,51 @@ void main() {
 		println(res[f]);
 	}
 	println((0 | it + res[x]| x <- res));
-}    
+}
+
+tuple[int, int, int] SLOCinLines(list[str] lines) {
+	linesOfCode = 0; nComments = 0; blanks = 0;
+	lines1 = [ trim(x) | str x <- lines, trim(x) != ""];
+	lines2 = [x | str x <- lines1, x[0..2] != "//"];
+	inComment = false;
+	for (line <- lines2) {
+		//Is there an opening comment?
+		if(!inComment && /\/\*/ := line) {
+			if (/".*\/\*.*"/ := line) {
+				linesOfCode += 1;
+			} else {
+				inComment = true;
+				//Is there code before the opening of comment or after the closing?
+				if (/\S+.*\/\*/ := line || /\*\/.*\S+/ := line) {
+					linesOfCode += 1;
+				} else {
+					nComments += 1;
+				}
+			}				
+		//Is there a closing comment?
+		} else if (inComment && /\*\// := line) {
+			inComment = false;
+			//Is there code after the closing comment?
+			if (/\*\/\S+/ := line) {
+				linesOfCode += 1;
+			} else {
+				nComments += 1;
+			}								
+		} else if (!inComment) {
+			linesOfCode += 1;
+		} else {
+			nComments += 1;
+		}
+	}
+	nComments += size(lines1) - size(lines2);
+	blanks += size(lines) - size(lines1);
+
+	result = <linesOfCode, nComments, blanks>;
+	return result;
+}
 
 SLOC filterFiles(FileSystem fs) {
 	SLOC result = ();
-	//tuple [loc file, int SLOC] max = <|project://jpacman-framework|, 0>;
 	//int totalSize = 0;
 	//int filesSeen = 0;
 	//int blankLines = 0;
@@ -70,44 +143,12 @@ SLOC filterFiles(FileSystem fs) {
 		case file(loc l): {
 			if( (/\.java/ := l.path)) {
 				allLines = readFileLines(l);
-				lines = [ trim(x) | str x <- allLines, trim(x) != ""];
-				lines2 = [x | str x <- lines, x[0..2] != "//"];
-				inComment = false;
-				linesOfCode = 0;
-				for (line <- lines2) {
-					//Is there an opening comment?
-					if(!inComment && /\/\*/ := line) {
-						if (/".*\/\*.*"/ := line) {
-							linesOfCode += 1;
-						} else {
-							inComment = true;
-							//Is there code before the opening of comment?
-							if (/\S+\/\*/ := line) {
-								linesOfCode += 1;
-							} else {
-								nComments += 1;
-							}
-						}				
-					//Is there a closing comment?
-					} else if (inComment && /\*\// := line) {
-						inComment = false;
-						//Is there code after the closing comment?
-						if (/\*\/\S+/ := line) {
-							linesOfCode += 1;
-						} else {
-							nComments += 1;
-						}								
-					} else if (!inComment) {
-						linesOfCode += 1;
-					} else {
-						nComments += 1;
-					}
-				}
-				nComments += size(lines) - size(lines2);
-				//filesSeen += 1;
-				//blankLines += size(allLines) - size(lines);
+				lineStats = SLOCinLines(allLines);
+				//nComments += comments;
+				//blankLines += blanks;
 				//totalSize += linesOfCode;
-				result[l] = linesOfCode;
+				//filesSeen += 1;
+				result[l] = lineStats;
 			}
 		}
 	}
