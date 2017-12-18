@@ -49,6 +49,38 @@ Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main
 //Declaration testASTs() = createAstFromFile(|project://jpacman/Test.java|, true); 
 
 alias CC = rel[loc method, int cc];
+alias CCDist = map[int cc, int freq];
+public &T cast(type[&T] tp, value v) throws str {
+    if (&T tv := v)
+        return tv;
+    else
+        throw "cast failed";
+}
+
+/* testfunctions */
+test bool javaTestFile() {
+	Declaration d = createAstFromFile(|project://jpacman/Test.java|, true);
+	CC methods = doDeclaration(d);
+	if (size(methods) != 5) {
+		return false;
+	}
+	CCDist hist = ccDist(methods);
+	
+	CCDist histGood = (10:1,8:1,2:1,11:2);
+	if (hist != histGood) {
+		return false;
+	}
+	
+	return true;
+} 
+
+test bool test01() = size(doDeclaration(createAstFromFile(|project://jpacman/Test.java|, true))) == 5;
+//test bool test02() = handleCondition(cast(Expression, "b && c && d && g") == 4);
+
+//CCDist ccDist(CC cc);
+//CC doDeclaration(Declaration d);
+//int calculateCC(Statement methodBody);
+//int handleCondition(Expression e);
 
 void main() {
 	/*For Test.java*/
@@ -77,7 +109,6 @@ void main() {
 	} 
 }
 
-
 CC cc(set[Declaration] decls) {
 	CC result = {};
 	int circomp;
@@ -99,8 +130,6 @@ map[int, int] addToHist(map[int, int] hist, int key) {
 	}
 	return hist;
 }
-
-alias CCDist = map[int cc, int freq];
 
 CCDist ccDist(CC cc) {
 	CCDist hist = ();
@@ -165,15 +194,15 @@ int calculateCC(Statement methodBody) {
 		case \do(Statement body, Expression condition) : {
 			decisionPoints += 1 + handleCondition(condition);
 		}
-    	case \try(Statement body, list[Statement] catchClauses) : {
-			decisionPoints += 1;
-    	}
-    	case \try(Statement body, list[Statement] catchClauses, Statement \finally) : {
-			decisionPoints += 2;
-    	}                                        
-    	case \catch(Declaration exception, Statement body) : {
-			decisionPoints += 1;
-    	}
+	    	case \try(Statement body, list[Statement] catchClauses) : {
+				decisionPoints += 1;
+	    	}
+	    	case \try(Statement body, list[Statement] catchClauses, Statement \finally) : {
+				decisionPoints += 2;
+	    	}                                        
+	    	case \catch(Declaration exception, Statement body) : {
+				decisionPoints += 1;
+	    	}
 	}
 	return decisionPoints - exitPoints + 2;
 }
