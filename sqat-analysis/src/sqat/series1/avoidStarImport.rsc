@@ -16,8 +16,8 @@ import util::ResourceMarkers;
 
 test bool testTestFile() {
 	loc testFile = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
-	SI bad = checkStyleStarImports(proj=testFile, printLocs=true);
-	return size(bad) == 1;
+	SI warnings = checkStyleStarImports(proj=testFile, printLocs=true);
+	return size(warnings) == 1;
 }
 
 
