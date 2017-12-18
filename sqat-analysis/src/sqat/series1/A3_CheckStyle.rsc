@@ -3,6 +3,7 @@ module sqat::series1::A3_CheckStyle
 import IO;
 import sqat::series1::longLines;
 import sqat::series1::customStyle;
+import sqat::series1::avoidStarImport;
 
 /*
 
@@ -47,6 +48,8 @@ Bonus:
 void checkStyle(loc project=|project://jpacman-framework/src|) {
 	llines = checkStyleLongLines(proj=project, threshold=80, printLines=false);
 	blines = checkStyleBraces(proj=project, printLocs=false);
+	silines = checkStyleStarImports(proj=project, printLocs=false);
+	allMethods = checkStyleNumberOfMethods(proj=project, threshold=8, printLines=false);
 	
 	
 	
@@ -55,6 +58,10 @@ void checkStyle(loc project=|project://jpacman-framework/src|) {
 		println(line);
 	}
 	println("\nThe curly brace lines:");
+	for (line <- blines) {
+		println(line);
+	}
+	println("\nThe star import lines:");
 	for (line <- blines) {
 		println(line);
 	}
