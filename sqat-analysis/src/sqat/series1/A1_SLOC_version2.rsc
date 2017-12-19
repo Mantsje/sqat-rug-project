@@ -38,6 +38,7 @@ test bool testSLOCFile() {
 	loc file = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
 	list[str] allLines = readFileLines(file);
 	<linesOfCode, comments, blanks> = SLOCinLines(allLines);
+	println("<<linesOfCode, comments, blanks>>");
 	result = blanks == 10;
 	result = result && (comments == 28);
 	result = result && (linesOfCode == 20);
@@ -71,6 +72,15 @@ test bool testSLOCLines() {
 	return result;
 }
 
+test bool testSLOCLines2() {
+	lines = ["int x = 4; /* var x */", "int y = 42; /* init variable y */", ""];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 1;
+	result = result && (comments == 0);
+	result = result && (linesOfCode == 2);
+	return result;
+}
+
 /*************** End Tests **********************/
 
 alias SLOC = map[loc file, int sloc];
@@ -83,7 +93,7 @@ SLOC sloc(loc project) {
 }         
 
 void main(loc proj=|project://jpacman-framework/src|) {
-	SLOC res = sloc(jpacman);
+	SLOC res = sloc(proj);
 	for(f <- res) {
 		print(f);
 		print(" : ");
@@ -98,19 +108,27 @@ tuple[int, int, int] SLOCinLines(list[str] lines) {
 	lines2 = [x | str x <- lines1, x[0..2] != "//"];
 	inComment = false;
 	for (line <- lines2) {
+		addLine = false;
 		//Is there an opening comment?
 		if(!inComment && /\/\*/ := line) {
-			if (/".*\/\*.*"/ := line) {
+			inComment = true;
+			//Is there code before the opening of comment
+			if (/\S+.*\/\*/ := line) {
+				addLine = true;
+			}
+			// Is there also a closing comment
+			if (/\*\// := line) {
+				//Is there following code?
+				if (/\*\/.*\S+/ := line) {
+					addLine = true;	
+				}
+				inComment = false;
+			} 
+			if (addLine) {
 				linesOfCode += 1;
 			} else {
-				inComment = true;
-				//Is there code before the opening of comment or after the closing?
-				if (/\S+.*\/\*/ := line || /\*\/.*\S+/ := line) {
-					linesOfCode += 1;
-				} else {
-					nComments += 1;
-				}
-			}				
+				nComments += 1;
+			}
 		//Is there a closing comment?
 		} else if (inComment && /\*\// := line) {
 			inComment = false;
