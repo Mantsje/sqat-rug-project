@@ -2,21 +2,20 @@ module sqat::series1::A2_McCabe_version2
 
 import lang::java::jdt::m3::AST;
 import analysis::m3::AST;
-import Node;
 import Prelude;
-import util::ValueUI;
-import IO;
+import analysis::statistics::Correlation;
 
 /*
-
 Construct a distribution of method cylcomatic complexity. 
 (that is: a map[int, int] where the key is the McCabe complexity, and the value the frequency it occurs)
 
 
 Questions:
 - which method has the highest complexity (use the @src annotation to get a method's location)
+A: |project://jpacman/src/main/java/nl/tudelft/jpacman/npc/ghost/Inky.java|(2255,2267,<68,1>,<131,17>)
 
 - how does pacman fare w.r.t. the SIG maintainability McCabe thresholds?
+A: The method with the highest complexity is 8. According to SIG, a cc of 1-10 has a risk evaluation of: simple, without much risk
 
 - is code size correlated with McCabe in this case (use functions in analysis::statistics::Correlation to find out)? 
   (Background: Davy Landman, Alexander Serebrenik, Eric Bouwers and Jurgen J. Vinju. Empirical analysis 
@@ -44,63 +43,62 @@ constructor
 //Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
 
 /* jpacman statements */
-set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true);
-//Declaration testASTs() = createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman/board/Square.java|, true);
+set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman|, true);
+set[Declaration] jpacmanNoTestsASTs() = createAstsFromEclipseProject(|project://jpacman/src/main|, true);
 Declaration testAST() = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true); 
 
 alias CC = rel[loc method, int cc];
 alias CCDist = map[int cc, int freq];
 
-//public &T cast(type[&T] tp, value v) throws str {
-//    if (&T tv := v)
-//        return tv;
-//    else
-//        throw "cast failed";
-//}
+/* BEGIN testfunctions && variables */
+Declaration d1 = \import("8");
 
-/* testfunctions */
+Expression e1 = \infix(\booleanLiteral(true), "&&", \booleanLiteral(true));
+Expression e2 = \infix(e1, "||", \booleanLiteral(true));
+Expression e3 = \infix(e1, "||", e2);
+
+Statement s1 = \continue();
+Statement s2 = \foreach(d1, e1, s1);
+Statement s3 = \for([], e1, [], s1);
+Statement s4 = \if(e1, s1);
+Statement s5 = \if(e1, s1, s1);
+Statement s6 = \switch(\null(), [\case(\null()), \case(\null()), \case(\null()), \case(\null()), \defaultCase()]);
+Statement s7 = \try(s1, [s1,s1,s1,s1,s1]);
+
 test bool test01() = size(handleDeclaration(createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true))) == 12;
-test bool test02() = numberOfIfClauses(\infix(\booleanLiteral(true), "&&", \booleanLiteral(true))) == 2;
+test bool test02() = numberOfIfClauses(e1) == 2;
+test bool test03() = numberOfIfClauses(e2) == 3;
+test bool test04() = numberOfIfClauses(e3) == 5;
+
+test bool test05() = calculateCC(s2) == 2;				// std 1 + (foreach)=1;
+test bool test06() = calculateCC(s3) == 3;				// std 1 + numberOfIfClauses(e1) of for;
+test bool test07() = calculateCC(s4) == 3;				// std 1 + numberOfIfClauses(e1) of if;
+test bool test08() = calculateCC(s4) == calculateCC(s5);	// elseBranch does not make any difference for cc of if
+test bool test09() = calculateCC(s6) == 6;				// std 1 + switch statement with 5 cases;
+test bool test10() = calculateCC(s7) == 7;				// std 1 + try + number of catch clauses (5)
 
 test bool javaTestFile() {
-
+	/* Using the file Test.java */
 	Declaration d = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true);
 	CC methods = handleDeclaration(d);
-	//if (!test01) {
-	//	return false;
-	//}
+	if (!test01()) return false;
 	
-	CCDist hist = ccDist(methods);
-	
-	CCDist histGood = (7:2, 1:1, 3:2, 2:1, 4:2, 5:2, 8:2);
-	if (hist != histGood) {
-		println("SumTing Wong");
-		return false;
-	}
-	
-	return true;
+	CCDist calculatedHist = ccDist(methods);
+	CCDist correctHist = (7:2, 1:1, 3:2, 2:1, 4:2, 5:2, 8:2);
+	return calculatedHist == correctHist;
 } 
 
-//CCDist ccDist(CC cc);
-//CC handleDeclaration(Declaration d);
-//int calculateCC(Statement methodBody);
-//int handleCondition(Expression e);
+/* END testfunctions && variables */
 
 void main() {
-	/*For Test.java*/
-	set[Declaration] s = {testAST()};
-	CC result = cc(s);
-	
-	/*For entire eclipse project*/
 	//CC result = cc(jpacmanASTs());
+	CC result = cc(jpacmanNoTestsASTs());
 	
-	//println("\nNow we print result:");
-	//println(result);
-	print("BEGIN result:\n\n");
-	for (m <- result) {
-		println(m);
-	}
-	print("\nEND result");
+	//print("BEGIN result:\n\n");
+	//for (m <- result) {
+	//	println(m);
+	//}
+	//print("\nEND result");
 	
 	CCDist hist = ccDist(result);
 	println("\nThe histogram:");
@@ -115,7 +113,15 @@ void main() {
 			print(" at location:  ");
 			println(l);
 		}
-	} 
+	}
+	
+	//println("\nmore Results:");
+	// Functions in analysis::statistics::Correlation, to calculate correlation
+	//println(covariance(lrel[num x,num y] values));
+	//println(PearsonsCorrelation);
+	//println(PearsonsCorrelationPValues(lrel[num x,num y] values));
+	//println(PearsonsCorrelationStandardErrors(lrel[num x,num y] values));
+	//println(SpearmansCorrelation(lrel[num x,num y] values));
 }
 
 CC cc(set[Declaration] decls) {
@@ -145,6 +151,8 @@ CCDist ccDist(CC cc) {
 	return hist;
 }
 
+// Calculate the circular complexity for every method in the declaration
+// return a CC (rel[loc method, int cc])
 CC handleDeclaration(Declaration d) {
 	CC locCC = {};
 	loc l;
@@ -164,6 +172,7 @@ CC handleDeclaration(Declaration d) {
 	return locCC;
 }
 
+// calculate and return the cc for the given Statement
 int calculateCC(Statement methodBody) {
 	int decisionPoints = 1; // std cc of 1
 
@@ -222,7 +231,6 @@ int numberOfIfClauses(Expression e) {
 	visit(e) {
 		case \infix(Expression lhs, str operator, Expression rhs) :{
 			clauses += ((operator == "&&" || operator == "||") ? 1 : 0);
-			//operators += ((operator == "&" || operator == "|") ? 0 : 0);
 		}
 	}
 	return clauses;
