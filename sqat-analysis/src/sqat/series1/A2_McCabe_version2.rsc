@@ -40,58 +40,67 @@ constructor
 */
 
 /* jpacman-framework statements */
-set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
-Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
+//set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
+//Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
 
 /* jpacman statements */
-//set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true);
+set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true);
 //Declaration testASTs() = createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman/board/Square.java|, true);
-//Declaration testASTs() = createAstFromFile(|project://jpacman/Test.java|, true); 
+Declaration testAST() = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true); 
 
 alias CC = rel[loc method, int cc];
 alias CCDist = map[int cc, int freq];
-public &T cast(type[&T] tp, value v) throws str {
-    if (&T tv := v)
-        return tv;
-    else
-        throw "cast failed";
-}
+
+//public &T cast(type[&T] tp, value v) throws str {
+//    if (&T tv := v)
+//        return tv;
+//    else
+//        throw "cast failed";
+//}
 
 /* testfunctions */
+test bool test01() = size(handleDeclaration(createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true))) == 12;
+test bool test02() = numberOfIfClauses(\infix(\booleanLiteral(true), "&&", \booleanLiteral(true))) == 2;
+
 test bool javaTestFile() {
-	Declaration d = createAstFromFile(|project://jpacman/Test.java|, true);
-	CC methods = doDeclaration(d);
-	if (size(methods) != 5) {
-		return false;
-	}
+
+	Declaration d = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true);
+	CC methods = handleDeclaration(d);
+	//if (!test01) {
+	//	return false;
+	//}
+	
 	CCDist hist = ccDist(methods);
 	
-	CCDist histGood = (10:1,8:1,2:1,11:2);
+	CCDist histGood = (7:2, 1:1, 3:2, 2:1, 4:2, 5:2, 8:2);
 	if (hist != histGood) {
+		println("SumTing Wong");
 		return false;
 	}
 	
 	return true;
 } 
 
-test bool test01() = size(doDeclaration(createAstFromFile(|project://jpacman/Test.java|, true))) == 5;
-//test bool test02() = handleCondition(cast(Expression, "b && c && d && g") == 4);
-
 //CCDist ccDist(CC cc);
-//CC doDeclaration(Declaration d);
+//CC handleDeclaration(Declaration d);
 //int calculateCC(Statement methodBody);
 //int handleCondition(Expression e);
 
 void main() {
 	/*For Test.java*/
-	//set[Declaration] s = {testASTs()};
-	//CC result = cc(s);
+	set[Declaration] s = {testAST()};
+	CC result = cc(s);
 	
 	/*For entire eclipse project*/
-	CC result = cc(jpacmanASTs());
+	//CC result = cc(jpacmanASTs());
 	
 	//println("\nNow we print result:");
 	//println(result);
+	print("BEGIN result:\n\n");
+	for (m <- result) {
+		println(m);
+	}
+	print("\nEND result");
 	
 	CCDist hist = ccDist(result);
 	println("\nThe histogram:");
@@ -114,23 +123,16 @@ CC cc(set[Declaration] decls) {
 	int circomp;
 	loc l;
 	for (Declaration d <- decls) {
-		x = doDeclaration(d);
+		x = handleDeclaration(d);
 		result = result + x;
 	}
 	
-	// result is a CC (rel[loc method, int cc]) with every method with the accompanied circular complexity
+	// result is a CC (rel[loc method, int cc]) with every method with the corresponding circular complexity
 	return result;
 }
 
-map[int, int] addToHist(map[int, int] hist, int key) {
-	if (key notin hist) {
-		hist[key] = 1;
-	} else {
-		hist[key] += 1;
-	}
-	return hist;
-}
-
+// Make a histogram of the CC (rel[loc method, int cc]), we get a CCDist = map[int cc, int freq].
+// cc is the key and the frequency it occurs 
 CCDist ccDist(CC cc) {
 	CCDist hist = ();
 	for (<l,cirComp> <- cc) {
@@ -143,7 +145,7 @@ CCDist ccDist(CC cc) {
 	return hist;
 }
 
-CC doDeclaration(Declaration d) {
+CC handleDeclaration(Declaration d) {
 	CC locCC = {};
 	loc l;
 	int cirComp = 0;
@@ -163,65 +165,65 @@ CC doDeclaration(Declaration d) {
 }
 
 int calculateCC(Statement methodBody) {
-	int decisionPoints = 0;
-	int exitPoints = 1;
+	int decisionPoints = 1; // std cc of 1
 
 	visit(methodBody) {
 		case \if(Expression condition, Statement thenBranch) :{
-			decisionPoints += 1 + handleCondition(condition);
+			// An if case adds one for every contition it tests (1 + shortcircuitingbinaryoperators)
+			// The function takes care of the +1
+			decisionPoints += numberOfIfClauses(condition);
 		}	
 		case \if(Expression condition, Statement thenBranch, Statement elseBranch) :{
-			decisionPoints += 1 + handleCondition(condition);
+			// else is linear and won't add anything to the cc
+			decisionPoints += numberOfIfClauses(condition);
 		}	
 		case \case(Expression expression) : {
+			// each case of an switch will add 1 to the cc 
 			decisionPoints += 1;
 		}
 		case \defaultCase() : {
+			// default is also a case of the switch 
 			decisionPoints += 1;
 		}
 		case \for(list[Expression] initializers, Expression condition, list[Expression] updaters, Statement body): {
-			decisionPoints += 1 + handleCondition(condition);
+			// A for loop with conditions results in 1 + shortcircuitingbinaryoperators
+			decisionPoints += numberOfIfClauses(condition);
 		}
 		case \for(list[Expression] initializers, list[Expression] updaters, Statement body): {
+			// A for loop without conditions adds 1 to the cc
 			decisionPoints += 1;
 		}
 		case \foreach(Declaration parameter, Expression collection, Statement body): {
 			decisionPoints += 1;
 		}
 		case \while(Expression condition, Statement body) : {
-			decisionPoints += 1 + handleCondition(condition);
+			// A while loop adds one for every contition it tests (1 + shortcircuitingbinaryoperators)
+			decisionPoints += numberOfIfClauses(condition);
 		}
 		case \do(Statement body, Expression condition) : {
-			decisionPoints += 1 + handleCondition(condition);
+			// A while loop adds one for every contition it tests (1 + shortcircuitingbinaryoperators)	
+			decisionPoints += numberOfIfClauses(condition);
 		}
 	    	case \try(Statement body, list[Statement] catchClauses) : {
-				decisionPoints += 1;
+	    		// If !{codeblock} do applicable catches
+	    		// codeblock can be seen as condition for executing catches	    		
+			decisionPoints += 1 + size(catchClauses);;
 	    	}
 	    	case \try(Statement body, list[Statement] catchClauses, Statement \finally) : {
-				decisionPoints += 2;
+	    		// \finally is always executed, so no increase in complexity
+			decisionPoints += 1 + size(catchClauses);
 	    	}                                        
-	    	case \catch(Declaration exception, Statement body) : {
-				decisionPoints += 1;
-	    	}
 	}
-	return decisionPoints - exitPoints + 2;
+	return decisionPoints;
 }
 
-int handleCondition(Expression e) {
-	int operators = 0;
+int numberOfIfClauses(Expression e) {
+	int clauses = 1;
 	visit(e) {
 		case \infix(Expression lhs, str operator, Expression rhs) :{
-			operators += ((operator == "&&" || operator == "||") ? 2 : 0);
+			clauses += ((operator == "&&" || operator == "||") ? 1 : 0);
 			//operators += ((operator == "&" || operator == "|") ? 0 : 0);
 		}
-		case \postfix(Expression operand, str operator) :{
-			// Don't think this is necessary, but to keep it general..?
-			operators += ((operator == "&&" || operator == "||") ? 2 : 0);
-		}
-		case \prefix(str operator, Expression operand) :{
-			// Don't think this is necessary, but to keep it general..?
-			operators += ((operator == "&&" || operator == "||") ? 2 : 0);
-		}	
 	}
-	return operators;
+	return clauses;
 }
