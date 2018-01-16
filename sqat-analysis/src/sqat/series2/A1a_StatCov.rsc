@@ -1,6 +1,7 @@
 module sqat::series2::A1a_StatCov
 
 import lang::java::jdt::m3::Core;
+import IO;
 
 /*
 
@@ -19,7 +20,7 @@ rel[loc from, loc to]         M3.containment;             // what is logically c
 list[Message]                 M3.messages;                // error messages and warnings produced while constructing a single m3 model
 rel[str simpleName, loc qualifiedName]  M3.names;         // convenience mapping from logical names to end-user readable (GUI) names, and vice versa
 rel[loc definition, loc comments]       M3.documentation; // comments and javadoc attached to declared things
-rel[loc definition, Modifier modifier] M3.modifiers;     // modifiers associated with declared things
+rel[loc definition, Modifier modifier] M3.modifiers;      // modifiers associated with declared things
 
 - module  lang::java::m3::Core:
 
@@ -45,5 +46,30 @@ Questions:
 */
 
 
+alias Graph = rel[loc, str, loc];
+
+alias Node = tuple[loc, str];
+alias PackageNode = Node[loc, "PN"];
+alias ClassNode = Node[loc, "CN"];
+alias MethodNode = Node[loc, "MN"];
+alias InterfaceNode = Node[loc, "IN"];
+
+str DT = "defines type";
+str DM = "defines method";
+str DC = "direct call";
+str DV = "virtual call";
+
+
 M3 jpacmanM3() = createM3FromEclipseProject(|project://jpacman-framework|);
+
+M3 project = jpacmanM3();
+
+void main() {
+	for(decl <- project.declarations) {
+	println(decl);
+		//if(decl[0].scheme == "java+package") {
+			//println(decl);
+		//}
+	}
+}
 
