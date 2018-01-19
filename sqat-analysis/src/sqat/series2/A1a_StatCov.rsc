@@ -1,7 +1,9 @@
-module sqat::series2::A1a_StatCov
+module sqat::series2::A1a_StatCov2
 
 import lang::java::jdt::m3::Core;
 import IO;
+import String;
+import Set;
 
 /*
 
@@ -39,37 +41,154 @@ Tips
 
 Questions:
 - what methods are not covered at all?
+See print statement in main
 - how do your results compare to the jpacman results in the paper? Has jpacman improved?
+In the paper it was a lot higher, however also Clover gives result that are closer to ours than to the ones in the paper.
+So apparantly the queality and covered parts of testing has decreased over the years.
 - use a third-party coverage tool (e.g. Clover) to compare your results to (explain differences)
+Differences come from of course being able to actually check which methods are called (no virtual call edges and such).
+Also it is a much more fine tuned tool which does more proper analyzing.
+There are some cases that could slip through the simple boolean checks we perform to determine what type of code we're dealing with.
+(java standard, junit, productionCode, testCode, etc)
 
+import sqat::series2::A1a_StatCov;
+main();
 
 */
 
+alias Cov = map[loc, tuple[int, int]];
 
-alias Graph = rel[loc, str, loc];
-
-alias Node = tuple[loc, str];
-alias PackageNode = Node[loc, "PN"];
-alias ClassNode = Node[loc, "CN"];
-alias MethodNode = Node[loc, "MN"];
-alias InterfaceNode = Node[loc, "IN"];
-
-str DT = "defines type";
-str DM = "defines method";
-str DC = "direct call";
-str DV = "virtual call";
-
+set[loc] allMethods;
+set[loc] allClasses;
+set[loc] allInterfaces;
+set[loc] allPackages;
 
 M3 jpacmanM3() = createM3FromEclipseProject(|project://jpacman-framework|);
 
-M3 project = jpacmanM3();
+bool isClass(loc src) 		 = src.scheme == "java+class";
+bool isCUnit(loc src) 		 = src.scheme == "java+compilationUnit";
+bool isPackage(loc src) 	 = src.scheme == "java+package";
+bool isInterface(loc src) 	 = src.scheme == "java+interface";
+bool isMethod(loc src) 		 = src.scheme == "java+method" || src.scheme == "java+constructor";
+bool isJavaStandard(loc src) = startsWith(src.path, "/java");
+bool isTestCode(loc src) 	 = contains(src.path, "/test/");
+bool isProductionCode(loc src) = !isTestCode(src) &&  contains(src.path, "jpacman") && !isJavaStandard(src);
+bool isTestMethod(set[loc] annotations) = |java+interface:///org/junit| in { a.parent | a <- annotations };
 
-void main() {
-	for(decl <- project.declarations) {
-	println(decl);
-		//if(decl[0].scheme == "java+package") {
-			//println(decl);
-		//}
+set[loc] getClasses(M3 project)    	= {decl[0] | decl <- project.declarations, isClass(decl[0]), 	!isTestCode(decl[1])};
+set[loc] getPackages(M3 project)    = {decl[0] | decl <- project.declarations, isPackage(decl[0]),   !isTestCode(decl[1])};
+set[loc] getInterfaces(M3 project)  = {decl[0] | decl <- project.declarations, isInterface(decl[0]), !isTestCode(decl[1])};
+set[loc] getMethods(M3 project)     = {decl[0] | decl <- project.declarations, isMethod(decl[0]),    isProductionCode(decl[1])};
+set[loc] getTestMethods(M3 project) = {meth[0] | meth <- project.declarations, isTestMethod(project.annotations[meth[0]])};
+
+set[loc] getMethodsOfLoc(M3 project, loc src) {
+	set[loc] methods = { m | m <- project.containment[src], m in getMethods(project)};
+	set[loc] allMethods = getMethods(project);
+	solve(methods) {
+		for (meth <- methods) {
+			methods += {m | m <- project.methodOverrides[meth], m in allMethods};
+		}
 	}
+	return methods;
 }
 
+tuple[loc, set[loc]] methodsOfClass(M3 project, loc class) = <class, getMethodsOfLoc(project, class)>;
+
+set[loc] getContainedPackages(M3 project, loc package) = { p | p <- project.containment[package], p in getPackages(project) };
+tuple[loc, set[loc]] transClosPackage(M3 project, loc package) {
+	set[loc] result = {package};		
+	solve(result) {
+		for (p <- result) {
+			result += getContainedPackages(project, p);
+		}
+	}
+	result -= package;
+	return <package, result>;
+}
+
+//Find all compilation units contained in package and get all interfaces and classes contained in those
+tuple[loc, set[loc]] classesAndInterfacesOfPackage(M3 project, loc package) {
+	set[loc] result = ( {} | it + s | s <- { project.containment[CI] | CI <- project.containment[package], isCUnit(CI)} );
+	result = {c | c <- result, c in allClasses || c in allInterfaces };
+	return <package, result>;
+}
+
+set[loc] getCoveredMethods(M3 project) {
+	set[loc] testMethods = getTestMethods(project);
+	set[loc] testedMethods = getTestMethods(project);
+	solve(testedMethods) {
+		temp = { {q | q <- project.methodInvocation[m], isProductionCode(q)} | m <- testedMethods};
+		testedMethods += ({} | it + s | s <- temp);
+	}
+	return testedMethods - testMethods;
+}
+
+/* ********** ********** result related ********** ********** */
+
+void printNonCoveredMethods(set[loc] tested, set[loc] allMethods) 
+	{ for(m <- (allMethods - tested)) println(m); }
+
+void printTotalCoverage(set[loc] testedMethods, set[loc] allMethods) 
+	{ println("Total coverage: " + makePercentage(size(testedMethods), size(allMethods))); }
+
+void printCoveragePerPackage(Cov packageCoverage) 
+	{ for (p <- packageCoverage) println("<p> : " + makePercentage(packageCoverage[p][0], packageCoverage[p][1]));  }
+
+void printCoveragePerClass(Cov classCoverage) 
+	{ for (c <- classCoverage) println("<c> : " + makePercentage(classCoverage[c][0], classCoverage[c][1]));  }
+
+
+tuple[loc, tuple[int, int]] getCoverageForClass(M3 project, loc class, set[loc] tested) {
+	<class, meths> = methodsOfClass(project, class); 
+	int covered = size({meth | meth <- meths, meth in tested});
+	return <class, <covered, size(meths)>>;
+}
+
+Cov getCoveragePerClassAndInterface(M3 project, set[loc] tested) {
+	Cov result = (); 
+	for (c <- (allClasses + allInterfaces)) {
+		out = getCoverageForClass(project, c, tested);
+		result[out[0]] = out[1];
+	}
+	return result;
+}
+
+tuple[loc, tuple[int, int]] getCoverageForPackage(M3 project, loc package, Cov classCoverage) {
+	<package, cis> = classesAndInterfacesOfPackage(project, package);
+	tuple[loc, tuple[int, int]] result = <package, <0, 0>>;
+	for(c <- cis) {
+		temp = classCoverage[c];
+		result[1] = <result[1][0] + temp[0], result[1][1] + temp[1]>; 
+	}
+	println(result);
+	return result;
+}
+
+
+Cov getCoveragePerPackage(M3 project, Cov coveragePerClass) {
+	Cov result = (); 
+	for (p <- allPackages) {
+		out = getCoverageForPackage(project, p, coveragePerClass);
+		result[out[0]] = out[1];
+	}
+	return result;
+}
+
+
+str makePercentage(num a, num b) = b == 0 ? "100%" : "<(a / b) * 100>%";
+
+void main() {
+	M3 project = jpacmanM3();
+	allMethods = getMethods(project);
+	allClasses = getClasses(project);
+	allInterfaces = getInterfaces(project);
+	allPackages = getPackages(project);	
+	set[loc] coveredMethods = getCoveredMethods(project);
+	
+	Cov classCoverage = getCoveragePerClassAndInterface(project, coveredMethods);
+	Cov packageCoverage = getCoveragePerPackage(project, classCoverage);
+	//printCoveragePerClass(classCoverage);
+	//printCoveragePerPackage(packageCoverage);
+	//printNonCoveredMethods(coveredMethods, allMethods);
+	printTotalCoverage(coveredMethods, allMethods);	
+}
