@@ -1,0 +1,10 @@
+nl.tudelft.jpacman.game cannot depend nl.tudelft.jpacman.ui
+
+nl.tudelft.jpacman.game.Game must depend nl.tudelft.jpacman.level
+nl.tudelft.jpacman.game.Game::start must invoke nl.tudelft.jpacman.level.Level::start
+nl.tudelft.jpacman.game.Game::start cannot invoke nl.tudelft.jpacman.Level::stop
+
+nl.tudelft.jpacman.npc.ghost.Blinky must inherit nl.tudelft.jpacman.npc.ghost.Ghost 
+nl.tudelft.jpacman.npc.ghost.Clyde must inherit nl.tudelft.jpacman.npc.ghost.Ghost 
+nl.tudelft.jpacman.npc.ghost.Pinky cannot inherit nl.tudelft.jpacman.npc.ghost.Blinky 
+nl.tudelft.jpacman.npc.ghost.Inky can only inherit nl.tudelft.jpacman.npc.ghost.Ghost 
