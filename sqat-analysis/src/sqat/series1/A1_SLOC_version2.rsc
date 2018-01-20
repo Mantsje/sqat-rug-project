@@ -16,10 +16,14 @@ Tips
 - use the functions in IO to read source files
 
 Answer the following questions:
-- what is the biggest file in JPacman?							<|src/main/java/nl/tudelft/jpacman/level/Level.java|, 179>
-- what is the total size of JPacman?							total size = 2458
-- is JPacman large according to SIG maintainability?			No <<< 0-66 KLOC
-- what is the ratio between actual code and test code size?		main = 1901, tests = 557
+- what is the biggest file in JPacman?
+A: <|src/main/java/nl/tudelft/jpacman/level/Level.java|, 179>
+- what is the total size of JPacman?
+A: total size = 2458
+- is JPacman large according to SIG maintainability?
+A: No <<< 0-66 KLOC
+- what is the ratio between actual code and test code size?
+A: main = 1901, tests = 557
 
 Sanity checks:
 - write tests to ensure you are correctly skipping multi-line comments

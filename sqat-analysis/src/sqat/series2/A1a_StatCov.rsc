@@ -1,4 +1,4 @@
-module sqat::series2::A1a_StatCov2
+module sqat::series2::A1a_StatCov
 
 import lang::java::jdt::m3::Core;
 import IO;
@@ -54,6 +54,15 @@ There are some cases that could slip through the simple boolean checks we perfor
 import sqat::series2::A1a_StatCov;
 main();
 
+Clover results:
+Coverage:
+	55 classes, 924 / 1199 elements
+	77,1%
+
+Test results
+	140 / 148 tests
+	94,6%
+	
 */
 
 alias Cov = map[loc, tuple[int, int]];

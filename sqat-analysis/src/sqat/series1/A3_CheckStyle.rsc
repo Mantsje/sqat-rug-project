@@ -45,8 +45,8 @@ Bonus:
 
 //loc testFile = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
 
-void checkStyle(loc project=|project://jpacman/src|) {
-//void checkStyle(loc project=|project://jpacman-framework/src|) {
+//void checkStyle(loc project=|project://jpacman/src|) {
+void checkStyle(loc project=|project://jpacman-framework/src|) {
 	lLines = checkStyleLongLines(proj=project, threshold=80, printLines=false);
 	bLines = checkStyleBraces(proj=project, printLocs=false);
 	siLines = checkStyleStarImports(proj=project, printLocs=false);
