@@ -34,7 +34,8 @@ The package nl.tudelft.jpacman.game should not use features of the package ui, b
 observed. This means it cannot import the package UI.
 Rule 2:
 The Game must depend on a level. When a new game is started, it should in fact start a new level. The game really is the
-connector between a player and a level. A game with only a player and no level makes no sense. 
+connector between a player and a level. A game with only a player and no level makes no sense. This means the game.start()
+should call the level.start(). 
 Rule 3:
 The ghosts Pinky, Clyde, Blinky and Inky must inherit from ghost, since they are all ghosts. They also cannot inherit from each other.
   
@@ -65,8 +66,19 @@ Tip:
 
 Questions
 - how would you test your evaluator of Dicto rules? (sketch a design)
+A:	We would create a testproject. This project does not have to be big, but it does need to have at least two packages
+	of which one package has multiple java files, so that inheritance can be simulated. Also there should be made sure that
+	at least one method refers to another method. 
+	
 - come up with 3 rule types that are not currently supported by this version
   of Dicto (and explain why you'd need them). 
+A:	* The 'can only' modality is now implemented in a way that it can only have 1 instance. One might be able to check whether
+	a class can only import multiple specific packages, instead of only being able to import one specific package.  
+  	* The 'invoke' modality is now implemented in a way that the check is whether a name of a method is entailed in the
+	invoked methods. This neglects the parameterlists. One might be able to narrow the specification of which method with the
+	parameters ... are called.
+	* 
+A:
 */
 
 loc getPackageLoc(Entity e) = |java+package:///| + replaceAll("<e>", ".", "/");
@@ -95,8 +107,6 @@ list[str] getPackageImports(loc p, M3 m) {
 	}
 	return imports;
 }
-
-// TODO: Imports
 
 // Depends
 Message mustDepend(Entity e1, Entity e2, M3 m3) {
@@ -156,8 +166,6 @@ Message cannotInvoke(Entity e1, Entity e2, M3 m3) {
 	return info("<e1> does indeed invoke <e2>", e1loc);
 }
 
-// TODO: Instantiates
-
 // Inherits
 Message mustInherit(Entity e1, Entity e2, M3 m3) {
 	// e1 must inherit e2
@@ -190,13 +198,9 @@ Message canOnlyInherit(Entity e1, Entity e2, M3 m3) {
 }
 
 M3 jpacmanM3() = createM3FromEclipseProject(|project://jpacman/src|);
-
 set[Message] main() = eval(parse(#start[Dicto], |project://sqat-analysis/src/sqat/series2/rules.dicto|) , jpacmanM3());
-
 set[Message] eval(start[Dicto] dicto, M3 m3) = eval(dicto.top, m3);
-
-set[Message] eval((Dicto)`<Rule* rules>`, M3 m3) 
-  = ( {} | it + eval(r, m3) | r <- rules );
+set[Message] eval((Dicto)`<Rule* rules>`, M3 m3) = ( {} | it + eval(r, m3) | r <- rules );
   
 set[Message] eval(Rule rule, M3 m3) {
 	set[Message] msgs = {};
