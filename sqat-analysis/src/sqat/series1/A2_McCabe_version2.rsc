@@ -40,99 +40,86 @@ constructor
 */
 
 /* jpacman-framework statements */
-set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
+set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true);
+//set[Declaration] jpacmanNoTestsASTs() = createAstsFromDirectory(|project://jpacman-framework/src/main/|, true);
 
 /* jpacman statements */
 //set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman|, true);
-set[Declaration] jpacmanNoTestsASTs() = createAstsFromEclipseProject(|project://jpacman-framework/src/main|, true);
+////set[Declaration] jpacmanNoTestsASTs() = createAstsFromDirectory(|project://jpacman/src/main/|, true);
+
 Declaration testAST() = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true); 
 
-alias CC = rel[loc method, int cc];
+alias CC = map[loc method, int cc];
 alias CCDist = map[int cc, int freq];
 
-/* BEGIN testfunctions && variables */
-Declaration d1 = \import("8");
-
-Expression e1 = \infix(\booleanLiteral(true), "&&", \booleanLiteral(true));
-Expression e2 = \infix(e1, "||", \booleanLiteral(true));
-Expression e3 = \infix(e1, "||", e2);
-
-Statement s1 = \continue();
-Statement s2 = \foreach(d1, e1, s1);
-Statement s3 = \for([], e1, [], s1);
-Statement s4 = \if(e1, s1);
-Statement s5 = \if(e1, s1, s1);
-Statement s6 = \switch(\null(), [\case(\null()), \case(\null()), \case(\null()), \case(\null()), \defaultCase()]);
-Statement s7 = \try(s1, [s1,s1,s1,s1,s1]);
-
-test bool test01() = size(handleDeclaration(createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true))) == 12;
-test bool test02() = numberOfIfClauses(e1) == 2;
-test bool test03() = numberOfIfClauses(e2) == 3;
-test bool test04() = numberOfIfClauses(e3) == 5;
-
-test bool test05() = calculateCC(s2) == 2;				// std 1 + (foreach)=1;
-test bool test06() = calculateCC(s3) == 3;				// std 1 + numberOfIfClauses(e1) of for;
-test bool test07() = calculateCC(s4) == 3;				// std 1 + numberOfIfClauses(e1) of if;
-test bool test08() = calculateCC(s4) == calculateCC(s5);	// elseBranch does not make any difference for cc of if
-test bool test09() = calculateCC(s6) == 6;				// std 1 + switch statement with 5 cases;
-test bool test10() = calculateCC(s7) == 7;				// std 1 + try + number of catch clauses (5)
-
-test bool javaTestFile() {
-	/* Using the file Test.java */
-	Declaration d = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true);
-	CC methods = handleDeclaration(d);
-	if (!test01()) return false;
-	
-	CCDist calculatedHist = ccDist(methods);
-	CCDist correctHist = (7:2, 1:1, 3:2, 2:1, 4:2, 5:2, 8:2);
-	return calculatedHist == correctHist;
-} 
-
-/* END testfunctions && variables */
-
 void main() {
-	//CC result = cc(jpacmanASTs());
-	CC result = cc(jpacmanNoTestsASTs());
-	
-	//print("BEGIN result:\n\n");
-	//for (m <- result) {
-	//	println(m);
-	//}
-	//print("\nEND result");
-	
-	CCDist hist = ccDist(result);
-	println("\nThe histogram:");
-	println(hist);
-	
-	maxCC = max(hist<0>);
-	
-	for (<l, cirComp> <- result) {
-		if (cirComp == maxCC) {
-			print("cc of ");
-			print(maxCC);
-			print(" at location:  ");
-			println(l);
-		}
-	}
-	
-	//println("\nmore Results:");
-	// Functions in analysis::statistics::Correlation, to calculate correlation
-	//println(covariance(lrel[num x,num y] values));
-	//println(PearsonsCorrelation);
-	//println(PearsonsCorrelationPValues(lrel[num x,num y] values));
-	//println(PearsonsCorrelationStandardErrors(lrel[num x,num y] values));
-	//println(SpearmansCorrelation(lrel[num x,num y] values));
+	allSources();
+	withoutTestSources();
 }
 
+void withoutTestSources() {
+	//CC resultNoTests = cc(jpacmanNoTestsASTs());
+	CC resultNoTests = cc(createDeclarationSetMainDirectory());
+	lrel[num, num] rcs = getRelationCCSLOC(resultNoTests,methodsToSLOC(resultNoTests));
+	println("\nCorrelations without the testsources:");
+	println("covariance = <covariance(rcs)>");
+	println("PearsonsCorrelation = <PearsonsCorrelation(rcs)>");
+	println("SpearmansCorrelation = <SpearmansCorrelation(rcs)>");
+}
+
+void allSources() {
+	CC resultAll = cc(jpacmanASTs());
+	
+	CCDist histAll = ccDist(resultAll);
+	println("\nThe histogram for the whole project:");
+	println(histAll);
+	
+	println("\nThe maximum CC for the whole project:");
+	maxCC = max(histAll<0>);
+	print("cc of <maxCC> at locations:");
+	println([l | l <- resultAll, resultAll[l] == maxCC]);
+
+	lrel[num, num] rcs = getRelationCCSLOC(resultAll,methodsToSLOC(resultAll));
+	println("\nCorrelations for the whole project:");
+	println("covariance = <covariance(rcs)>");
+	println("PearsonsCorrelation = <PearsonsCorrelation(rcs)>");
+	println("SpearmansCorrelation = <SpearmansCorrelation(rcs)>");
+}
+
+lrel[num, num] getRelationCCSLOC(CC cc, map[loc, int] sloc) {
+	lrel[num, num] result = [];
+	num x,y;
+	for (m <- cc) {
+		x = cc[m];
+		y = sloc[m];
+		result += <x, y>;
+	}
+	return result;
+}
+
+map[loc, int] methodsToSLOC(CC cc) {
+	map[loc, int] sloc = ();
+	for (l <- cc) {
+		sloc[l] = getMethodSLOC(l);
+	}
+	return sloc;
+}
+
+int getMethodSLOC(loc l) {
+	allLines = readFileLines(toLocation(l.scheme + "://" +  l.authority + l.path));
+	targetLines = slice(allLines, l.begin.line, l.end.line-l.begin.line);
+	return SLOCinLines(targetLines)<0>;
+}
+
+// The result is a CC (rel[loc method, int cc]) with every method with the corresponding circular complexity
 CC cc(set[Declaration] decls) {
-	CC result = {};
+	CC result = ();
 	int circomp;
 	loc l;
 	for (Declaration d <- decls) {
 		x = handleDeclaration(d);
 		result = result + x;
 	}
-	// result is a CC (rel[loc method, int cc]) with every method with the corresponding circular complexity
 	return result;
 }
 
@@ -140,11 +127,11 @@ CC cc(set[Declaration] decls) {
 // cc is the key and the frequency it occurs 
 CCDist ccDist(CC cc) {
 	CCDist hist = ();
-	for (<l,cirComp> <- cc) {
-		if (cirComp notin hist) {
-			hist[cirComp] = 1;
+	for (l <- cc) {
+		if (cc[l] notin hist) {
+			hist[cc[l]] = 1;
 		} else {
-			hist[cirComp] += 1;
+			hist[cc[l]] += 1;
 		}
 	}
 	return hist;
@@ -153,19 +140,19 @@ CCDist ccDist(CC cc) {
 // Calculate the circular complexity for every method in the declaration
 // return a CC (rel[loc method, int cc])
 CC handleDeclaration(Declaration d) {
-	CC locCC = {};
+	CC locCC = ();
 	loc l;
 	int cirComp = 0;
 	visit(d) {
 		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement body): {
 			cirComp = calculateCC(body);
 			l = m.src;
-			locCC = locCC + <l,cirComp>;
+			locCC[l] = cirComp;
 		}
 		case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
 			cirComp = calculateCC(impl);
 			l = c.src;
-			locCC = locCC + <l,cirComp>;
+			locCC[l] = cirComp;
 		}
 	}
 	return locCC;
@@ -234,3 +221,97 @@ int numberOfIfClauses(Expression e) {
 	}
 	return clauses;
 }
+
+set[Declaration] createDeclarationSetMainDirectory() {
+	set[Declaration] decls = {};
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/Launcher.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/PacmanConfigurationException.java|, true);
+	//annotations
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/annotations/ParameterizedAssignment.java|, true);
+	//board
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Board.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/BoardFactory.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Direction.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Square.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Unit.java|, true);
+	//game
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/game/Game.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/game/GameFactory.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/game/SinglePlayerGame.java|, true);
+	//level
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/CollisionInteractionMap.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/CollisionMap.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/DefaultPlayerInteractionMap.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/Level.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/LevelFactory.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/MapParser.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/Pellet.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/Player.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/PlayerCollisions.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/PlayerFactory.java|, true);
+	//npc
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/NPC.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Blinky.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Clyde.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Ghost.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/GhostColor.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/GhostFactory.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Inky.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Navigation.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/package-info.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Pinky.java|, true);
+	//sprite
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/AnimatedSprite.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/EmptySprite.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/ImageSprite.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/PacManSprites.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/Sprite.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/SpriteStore.java|, true);
+	//ui
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/Action.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/BoardPanel.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/ButtonPanel.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/PacKeyListener.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/PacManUI.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/PacManUiBuilder.java|, true);
+	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/ScorePanel.java|, true);
+	return decls;
+}
+
+/* BEGIN testfunctions && variables */
+Declaration d1 = \import("8");
+
+Expression e1 = \infix(\booleanLiteral(true), "&&", \booleanLiteral(true));
+Expression e2 = \infix(e1, "||", \booleanLiteral(true));
+Expression e3 = \infix(e1, "||", e2);
+
+Statement s1 = \continue();
+Statement s2 = \foreach(d1, e1, s1);
+Statement s3 = \for([], e1, [], s1);
+Statement s4 = \if(e1, s1);
+Statement s5 = \if(e1, s1, s1);
+Statement s6 = \switch(\null(), [\case(\null()), \case(\null()), \case(\null()), \case(\null()), \defaultCase()]);
+Statement s7 = \try(s1, [s1,s1,s1,s1,s1]);
+
+test bool test01() = size(handleDeclaration(createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true))) == 12;
+test bool test02() = numberOfIfClauses(e1) == 2;
+test bool test03() = numberOfIfClauses(e2) == 3;
+test bool test04() = numberOfIfClauses(e3) == 5;
+
+test bool test05() = calculateCC(s2) == 2;				// std 1 + (foreach)=1;
+test bool test06() = calculateCC(s3) == 3;				// std 1 + numberOfIfClauses(e1) of for;
+test bool test07() = calculateCC(s4) == 3;				// std 1 + numberOfIfClauses(e1) of if;
+test bool test08() = calculateCC(s4) == calculateCC(s5);	// elseBranch does not make any difference for cc of if
+test bool test09() = calculateCC(s6) == 6;				// std 1 + switch statement with 5 cases;
+test bool test10() = calculateCC(s7) == 7;				// std 1 + try + number of catch clauses (5)
+
+test bool javaTestFile() {
+	/* Using the file Test.java */
+	Declaration d = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true);
+	CC methods = handleDeclaration(d);
+	if (!test01()) return false;
+	
+	CCDist calculatedHist = ccDist(methods);
+	CCDist correctHist = (7:2, 1:1, 3:2, 2:1, 4:2, 5:2, 8:2);
+	return calculatedHist == correctHist;
+} 
