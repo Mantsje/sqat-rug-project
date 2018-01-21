@@ -1,8 +1,13 @@
 module sqat::series2::A1b_DynCov
 
+import lang::java::jdt::m3::AST;
+import Prelude;
+import IO;
+
 import Java17ish;
 import ParseTree;
 import util::FileSystem;
+
 
 /*
 
@@ -43,6 +48,32 @@ Tips:
 
 */
 
+set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://shadowman-framework/|, true); 
+
+void main() {
+	asts = jpacmanASTs();
+	cnt = 0;
+	for(Declaration decl <- asts) {
+		visit(decl) {
+			case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement body): {
+				cnt += 1;
+				println("<body>");
+				println(b);
+				break;
+			}
+			case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
+				cnt += 1;
+				println("<c.src.authority>");
+			}
+		}
+		break;
+	}
+}
+
+ 
+    		//case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
+    		//	println("constructor");
+    		//}
 
 void methodCoverage(loc project) {
   // to be done

@@ -41,18 +41,15 @@ Tips
 
 Questions:
 - what methods are not covered at all?
-See print statement in main
+A: See print statement in main
 - how do your results compare to the jpacman results in the paper? Has jpacman improved?
-In the paper it was a lot higher, however also Clover gives result that are closer to ours than to the ones in the paper.
+A: In the paper it was a lot higher, however also Clover gives result that are closer to ours than to the ones in the paper.
 So apparantly the queality and covered parts of testing has decreased over the years.
 - use a third-party coverage tool (e.g. Clover) to compare your results to (explain differences)
-Differences come from of course being able to actually check which methods are called (no virtual call edges and such).
+A: Differences come from of course being able to actually check which methods are called (no virtual call edges and such).
 Also it is a much more fine tuned tool which does more proper analyzing.
 There are some cases that could slip through the simple boolean checks we perform to determine what type of code we're dealing with.
 (java standard, junit, productionCode, testCode, etc)
-
-import sqat::series2::A1a_StatCov;
-main();
 
 Clover results:
 Coverage:
@@ -200,4 +197,6 @@ void main() {
 	//printCoveragePerPackage(packageCoverage);
 	//printNonCoveredMethods(coveredMethods, allMethods);
 	printTotalCoverage(coveredMethods, allMethods);	
+	println("<size(allMethods)>");
+	println("<size(getTestMethods(project))>");
 }

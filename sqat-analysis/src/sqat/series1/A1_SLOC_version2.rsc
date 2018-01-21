@@ -19,7 +19,7 @@ Answer the following questions:
 - what is the biggest file in JPacman?
 A: <|src/main/java/nl/tudelft/jpacman/level/Level.java|, 179>
 - what is the total size of JPacman?
-A: total size = 2458
+A: total size = 2459
 - is JPacman large according to SIG maintainability?
 A: No <<< 0-66 KLOC
 - what is the ratio between actual code and test code size?
@@ -37,57 +37,7 @@ Bonus:
 
 */
 
-/*************** Tests **********************/
-test bool testSLOCFile() {
-	loc file = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
-	list[str] allLines = readFileLines(file);
-	<linesOfCode, comments, blanks> = SLOCinLines(allLines);
-	println("<<linesOfCode, comments, blanks>>");
-	result = blanks == 10;
-	result = result && (comments == 28);
-	result = result && (linesOfCode == 20);
-	return result;
-}
-
-test bool testSLOCEmpty() {
-	lines = ["\n", "\n", "\n"];
-	<linesOfCode, comments, blanks> = SLOCinLines(lines);
-	result = blanks == 3;
-	result = result && (comments == 0);
-	result = result && (linesOfCode == 0);
-	return result;
-}
-
-test bool testSLOCComment() {
-	lines = ["/* this is\n", "* a really nice\n", "* multiline comment*/ \n"];
-	<linesOfCode, comments, blanks> = SLOCinLines(lines);
-	result = blanks == 0;
-	result = result && (comments == 3);
-	result = result && (linesOfCode == 0);
-	return result;
-}
-
-test bool testSLOCLines() {
-	lines = ["int x = 4;\n", "/* init variable y */ int y = 42;\n", " \n  "];
-	<linesOfCode, comments, blanks> = SLOCinLines(lines);
-	result = blanks == 1;
-	result = result && (comments == 0);
-	result = result && (linesOfCode == 2);
-	return result;
-}
-
-test bool testSLOCLines2() {
-	lines = ["int x = 4; /* var x */", "int y = 42; /* init variable y */", ""];
-	<linesOfCode, comments, blanks> = SLOCinLines(lines);
-	result = blanks == 1;
-	result = result && (comments == 0);
-	result = result && (linesOfCode == 2);
-	return result;
-}
-
-/*************** End Tests **********************/
-
-alias SLOC = map[loc file, int sloc];
+alias SLOC = map[loc file, tuple[int sloc, int comments, int blanks] info];
 
 SLOC sloc(loc project) {
 	SLOC result = ();
@@ -103,7 +53,9 @@ void main(loc proj=|project://jpacman-framework/src|) {
 		print(" : ");
 		println(res[f]);
 	}
-	println((0 | it + res[x]| x <- res));
+	println("total SLOC: 		  <(0 | it + res[x].sloc	| x <- res)>");
+	println("total comment lines: <(0 | it + res[x].comments| x <- res)>");
+	println("total blank lines:   <(0 | it + res[x].blanks	| x <- res)>");
 }
 
 tuple[int, int, int] SLOCinLines(list[str] lines) {
@@ -157,32 +109,64 @@ tuple[int, int, int] SLOCinLines(list[str] lines) {
 
 SLOC filterFiles(FileSystem fs) {
 	SLOC result = ();
-	//int totalSize = 0;
-	//int filesSeen = 0;
-	//int blankLines = 0;
 	int nComments = 0;
 	visit (fs) {
 		case file(loc l): {
 			if( (/\.java/ := l.path)) {
 				allLines = readFileLines(l);
 				lineStats = SLOCinLines(allLines);
-				//nComments += comments;
-				//blankLines += blanks;
-				//totalSize += linesOfCode;
-				//filesSeen += 1;
 				result[l] = lineStats;
 			}
 		}
 	}
-	//println(max);
-	//print("nFiles = ");
-	//println(filesSeen);
-	//print("blank Lines = ");
-	//println(blankLines);
-	//print("comment Lines = ");
-	//println(nComments);
-	//print("total SLOC = ");
-	//println(totalSize);
-	//println("");
 	return result;
 }
+
+/*************** Tests **********************/
+test bool testSLOCFile() {
+	loc file = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
+	list[str] allLines = readFileLines(file);
+	<linesOfCode, comments, blanks> = SLOCinLines(allLines);
+	result = blanks == 8;
+	result = result && (comments == 28);
+	result = result && (linesOfCode == 24);
+	return result;
+}
+
+test bool testSLOCEmpty() {
+	lines = ["\n", "\n", "\n"];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 3;
+	result = result && (comments == 0);
+	result = result && (linesOfCode == 0);
+	return result;
+}
+
+test bool testSLOCComment() {
+	lines = ["/* this is\n", "* a really nice\n", "* multiline comment*/ \n"];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 0;
+	result = result && (comments == 3);
+	result = result && (linesOfCode == 0);
+	return result;
+}
+
+test bool testSLOCLines() {
+	lines = ["int x = 4;\n", "/* init variable y */ int y = 42;\n", " \n  "];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 1;
+	result = result && (comments == 0);
+	result = result && (linesOfCode == 2);
+	return result;
+}
+
+test bool testSLOCLines2() {
+	lines = ["int x = 4; /* var x */", "int y = 42; /* init variable y */", ""];
+	<linesOfCode, comments, blanks> = SLOCinLines(lines);
+	result = blanks == 1;
+	result = result && (comments == 0);
+	result = result && (linesOfCode == 2);
+	return result;
+}
+
+/*************** End Tests **********************/

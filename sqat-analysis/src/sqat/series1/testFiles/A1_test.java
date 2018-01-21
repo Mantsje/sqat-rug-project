@@ -58,4 +58,3 @@ public abstract class Square {
 	public abstract Sprite getSprite();
 
 }
-

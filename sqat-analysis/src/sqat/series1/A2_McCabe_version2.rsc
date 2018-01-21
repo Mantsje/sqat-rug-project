@@ -1,5 +1,6 @@
 module sqat::series1::A2_McCabe_version2
 
+import sqat::series1::A1_SLOC_version2;
 import lang::java::jdt::m3::AST;
 import analysis::m3::AST;
 import Prelude;
@@ -39,12 +40,11 @@ constructor
 */
 
 /* jpacman-framework statements */
-//set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
-//Declaration testASTs() = createAstFromFile(|project://jpacman-framework/src/main/java/nl/tudelft/jpacman/board/Square.java|, true); 
+set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman-framework|, true); 
 
 /* jpacman statements */
-set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman|, true);
-set[Declaration] jpacmanNoTestsASTs() = createAstsFromEclipseProject(|project://jpacman/src/main|, true);
+//set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://jpacman|, true);
+set[Declaration] jpacmanNoTestsASTs() = createAstsFromEclipseProject(|project://jpacman-framework/src/main|, true);
 Declaration testAST() = createAstFromFile(|project://sqat-analysis/src/sqat/series1/testFiles/Test.java|, true); 
 
 alias CC = rel[loc method, int cc];
@@ -132,7 +132,6 @@ CC cc(set[Declaration] decls) {
 		x = handleDeclaration(d);
 		result = result + x;
 	}
-	
 	// result is a CC (rel[loc method, int cc]) with every method with the corresponding circular complexity
 	return result;
 }
