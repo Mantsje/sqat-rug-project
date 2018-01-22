@@ -16,8 +16,8 @@ import util::ResourceMarkers;
 
 test bool testTestFile() {
 	loc testFile = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
-	SI warnings = checkStyleStarImports(proj=testFile, printLocs=true);
-	return size(warnings) == 1;
+	<violations, warnings> = checkStyleStarImports(proj=testFile, printLocs=true);
+	return size(violations) == 1;
 }
 
 
@@ -25,13 +25,12 @@ test bool testTestFile() {
 alias SI = map[loc line, bool starImport];
 
 //jpacman is default project
-SI checkStyleStarImports(loc proj = |project://jpacman-framework/src|, bool printLocs=false) {
+tuple[SI, set[Message]] checkStyleStarImports(loc proj = |project://jpacman-framework/src|, bool printLocs=false) {
 	SI si = starImportLines(proj);
-	addMessageMarkers(warningsForStarImports(si));
 	if (printLocs) {
 		println(si);
 	}
-	return si;
+	return <si, warningsForStarImports(si)>;
 }
 
 set[Message] warningsForStarImports(SI si) 
@@ -53,7 +52,7 @@ SI linesToLocStarImportBool(list[str] lines, loc fileLoc) {
 	int accum = 0;
 	for (line <- lines) {
 		result[fileLoc(accum, size(line), <0,0>, <0,0>)] = isStarImport(line);
-		accum += size(line);
+		accum += size(line) + 1;
 	}
 	return result;
 }

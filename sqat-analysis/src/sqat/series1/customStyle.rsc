@@ -11,8 +11,8 @@ import util::ResourceMarkers;
 
 test bool testTestFile() {
 	loc testFile = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
-	BS bad = checkStyleBraces(proj=testFile, printLocs=true);
-	return size(bad) == 1;
+	<violations, warnings> = checkStyleBraces(proj=testFile, printLocs=true);
+	return size(violations) == 1;
 }
 
 
@@ -20,13 +20,12 @@ test bool testTestFile() {
 alias BS = map[loc line, bool singleBrace];
 
 //jpacman is default project
-BS checkStyleBraces(loc proj = |project://jpacman-framework/src|, bool printLocs=false) {
+tuple[BS, set[Message]] checkStyleBraces(loc proj = |project://jpacman-framework/src|, bool printLocs=false) {
 	BS bs = singleBracketLines(proj);
-	addMessageMarkers(warningsForSingleBraces(bs));
 	if(printLocs) {
 		println(bs);
 	}
-	return bs;
+	return <bs, warningsForSingleBraces(bs)>;
 }
 
 set[Message] warningsForSingleBraces(BS bs) 

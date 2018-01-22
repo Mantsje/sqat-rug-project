@@ -19,21 +19,20 @@ import util::ResourceMarkers;
 
 test bool testTestFile() {
 	loc testFile = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
-	LL bad = checkStyleLongLines(proj=testFile, threshold=80, printLines=true);
-	return size(bad) == 1;
+	<violations, warnings> = checkStyleLongLines(proj=testFile, threshold=80, printLines=true);
+	return size(violations) == 1;
 }
 
 
 alias LL = map[loc line, int size];
 
 //jpacman is default project and default threshold is 80
-LL checkStyleLongLines(loc proj = |project://jpacman-framework/src|, int threshold=80, bool printLines=false) {
+tuple[LL, set[Message]] checkStyleLongLines(loc proj = |project://jpacman-framework/src|, int threshold=80, bool printLines=false) {
 	LL longLineLocs = longLines(proj, threshold);
-	addMessageMarkers(warningsForLongLines(longLineLocs, threshold));
 	if (printLines) {
 		println(longLineLocs);
 	}
-	return longLineLocs;
+	return <longLineLocs, warningsForLongLines(longLineLocs, threshold)>;
 }
 
 set[Message] warningsForLongLines(LL ls, int threshold) 

@@ -197,7 +197,7 @@ Message canOnlyInherit(Entity e1, Entity e2, M3 m3) {
 	return error("<e1> can only inherit <e2>, but it doesnt", e1loc);
 }
 
-M3 jpacmanM3() = createM3FromEclipseProject(|project://jpacman/src|);
+M3 jpacmanM3() = createM3FromEclipseProject(|project://jpacman-framework/src|);
 set[Message] main() = eval(parse(#start[Dicto], |project://sqat-analysis/src/sqat/series2/rules.dicto|) , jpacmanM3());
 set[Message] eval(start[Dicto] dicto, M3 m3) = eval(dicto.top, m3);
 set[Message] eval((Dicto)`<Rule* rules>`, M3 m3) = ( {} | it + eval(r, m3) | r <- rules );

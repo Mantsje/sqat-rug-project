@@ -5,6 +5,8 @@ import lang::java::jdt::m3::AST;
 import analysis::m3::AST;
 import Prelude;
 import analysis::statistics::Correlation;
+import util::FileSystem;
+import Set;
 
 /*
 Construct a distribution of method cylcomatic complexity. 
@@ -222,59 +224,25 @@ int numberOfIfClauses(Expression e) {
 	return clauses;
 }
 
+set[loc] getFiles(loc project) {
+	set[loc] files = {};
+  	FileSystem fs = crawl(project);
+	visit (fs) {
+		case file(loc l): {
+			if( (/\.java/ := l.path)) {
+				files += l;
+			}
+		}
+	}
+	return files;
+} 
+
 set[Declaration] createDeclarationSetMainDirectory() {
 	set[Declaration] decls = {};
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/Launcher.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/PacmanConfigurationException.java|, true);
-	//annotations
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/annotations/ParameterizedAssignment.java|, true);
-	//board
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Board.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/BoardFactory.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Direction.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Square.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/board/Unit.java|, true);
-	//game
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/game/Game.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/game/GameFactory.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/game/SinglePlayerGame.java|, true);
-	//level
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/CollisionInteractionMap.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/CollisionMap.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/DefaultPlayerInteractionMap.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/Level.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/LevelFactory.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/MapParser.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/Pellet.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/Player.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/PlayerCollisions.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/level/PlayerFactory.java|, true);
-	//npc
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/NPC.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Blinky.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Clyde.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Ghost.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/GhostColor.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/GhostFactory.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Inky.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Navigation.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/package-info.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/npc/ghost/Pinky.java|, true);
-	//sprite
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/AnimatedSprite.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/EmptySprite.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/ImageSprite.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/PacManSprites.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/Sprite.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/sprite/SpriteStore.java|, true);
-	//ui
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/Action.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/BoardPanel.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/ButtonPanel.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/PacKeyListener.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/PacManUI.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/PacManUiBuilder.java|, true);
-	decls += createAstFromFile(|project://jpacman/src/main/java/nl/tudelft/jpacman-framework/ui/ScorePanel.java|, true);
+	set[loc] filesInMain = getFiles(|project://jpacman-framework/src/main/|);
+	for (f <- filesInMain) { 
+		decls += createAstFromFile(f, true);
+	}
 	return decls;
 }
 

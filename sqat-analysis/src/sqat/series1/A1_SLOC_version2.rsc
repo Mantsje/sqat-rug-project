@@ -109,7 +109,6 @@ tuple[int, int, int] SLOCinLines(list[str] lines) {
 
 SLOC filterFiles(FileSystem fs) {
 	SLOC result = ();
-	int nComments = 0;
 	visit (fs) {
 		case file(loc l): {
 			if( (/\.java/ := l.path)) {

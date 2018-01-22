@@ -55,7 +55,6 @@ Clover results:
 Coverage:
 	55 classes, 924 / 1199 elements
 	77,1%
-
 Test results
 	140 / 148 tests
 	94,6%
@@ -166,7 +165,6 @@ tuple[loc, tuple[int, int]] getCoverageForPackage(M3 project, loc package, Cov c
 		temp = classCoverage[c];
 		result[1] = <result[1][0] + temp[0], result[1][1] + temp[1]>; 
 	}
-	println(result);
 	return result;
 }
 
@@ -196,7 +194,6 @@ void main() {
 	//printCoveragePerClass(classCoverage);
 	//printCoveragePerPackage(packageCoverage);
 	//printNonCoveredMethods(coveredMethods, allMethods);
-	printTotalCoverage(coveredMethods, allMethods);	
-	println("<size(allMethods)>");
-	println("<size(getTestMethods(project))>");
+	printTotalCoverage(coveredMethods, allMethods);
+	println(size(allClasses));
 }

@@ -1,8 +1,7 @@
 module sqat::series2::A1b_DynCov
 
-import lang::java::jdt::m3::AST;
-import Prelude;
 import IO;
+import Set;
 
 import Java17ish;
 import ParseTree;
@@ -48,32 +47,49 @@ Tips:
 
 */
 
-set[Declaration] jpacmanASTs() = createAstsFromEclipseProject(|project://shadowman-framework/|, true); 
-
-void main() {
-	asts = jpacmanASTs();
-	cnt = 0;
-	for(Declaration decl <- asts) {
-		visit(decl) {
-			case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement body): {
-				cnt += 1;
-				println("<body>");
-				println(b);
-				break;
-			}
-			case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
-				cnt += 1;
-				println("<c.src.authority>");
+set[loc] getFiles(loc project) {
+	set[loc] files = {};
+  	FileSystem fs = crawl(project);
+	visit (fs) {
+		case file(loc l): {
+			if( (/\.java/ := l.path)) {
+				files += l;
 			}
 		}
+	}
+	return files;
+}  
+
+BlockStm createPrintFor(loc f) {
+	str className = "leh";
+	str methodName = "ads";
+	println(f.parent);
+	int lineNum = f.begin.line;
+	str result = "{System.out.println(\"Hit <className> <methodName> <lineNum>\"}";
+	return (BlockStm)`{System.out.println("Hit");}`;
+}
+
+void main() {
+	loc project = |project://shadowman-framework/src/main|;
+	allFiles = getFiles(project);
+	for(f <- allFiles) {
+		parseTreeOfFile = parseJava(f);
+		visit(parseTreeOfFile) {
+			case (Block)`{<BlockStm* stms>}`: {
+				println(putAfterEvery(stms, createPrintFor));
+				//println(stms);
+			}
+			case (SwitchGroup)`<SwitchLabel+ label> <BlockStm+ stms>`: {
+				println(stms);
+			}
+			case (ConstrBody)`{<ConstrInv? constrInv> <BlockStm* stms>}`:  {
+				println(stms);	
+			}
+		}
+		println(f);
 		break;
 	}
 }
-
- 
-    		//case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
-    		//	println("constructor");
-    		//}
 
 void methodCoverage(loc project) {
   // to be done
@@ -82,7 +98,6 @@ void methodCoverage(loc project) {
 void lineCoverage(loc project) {
   // to be done
 }
-
 
 
 // Helper function to deal with concrete statement lists

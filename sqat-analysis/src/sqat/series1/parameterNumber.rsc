@@ -18,8 +18,8 @@ import Type;
 
 test bool testTestFile() {
 	loc testFile = |project://sqat-analysis/src/sqat/series1/testFiles/A1_test.java|;
-	MP warnings = checkStyleParameterNumber(proj=testFile, threshold=7 , printLocs=true);
-	return size(warnings) == 0;
+	<violations, warnings> = checkStyleParameterNumber(proj=testFile, threshold=5 , printLocs=true);
+	return size(violations) == 0;
 }
 
 
@@ -29,17 +29,16 @@ alias MP = map[loc method, int parameters];
 loc p = |project://jpacman/src|;
 
 // jpacman is default project
-MP checkStyleParameterNumber(loc proj = |project://jpacman/src|, int threshold = 7, bool printLocs=false) {
+tuple[MP, set[Message]] checkStyleParameterNumber(loc proj = |project://jpacman/src|, int threshold = 7, bool printLocs=false) {
 	MP mp = methodParameterNumber(proj, threshold);
-	addMessageMarkers(warningsForParameterNumber(mp, threshold));
 	if (printLocs) {
 		println(mp);
 	}
-	return mp;
+	return <mp,warningsForParameterNumber(mp, threshold)>;
 }
 
 set[Message] warningsForParameterNumber(MP mp, int threshold) 
-  = { warning(("To many parameters in this method. guideline: <threshold>."), l) | l <- mp};
+  = { warning(("Too many parameters in this method. guideline: <threshold>."), l) | l <- mp};
 
 //Locate all methdos in the file and return the locations in a list
 MP methodParameters(loc file) {
@@ -49,6 +48,13 @@ MP methodParameters(loc file) {
 		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions, Statement body): {
 			mp[m.src] = size(parameters);
 		}
+		case m:\method(Type \return, str name, list[Declaration] parameters, list[Expression] exceptions): {
+			mp[m.src] = size(parameters);
+		}
+		case c:\constructor(str name, list[Declaration] parameters, list[Expression] exceptions, Statement impl): {
+			mp[c.src] = size(parameters);
+		}
+    
 	}	
 	return mp;
 }

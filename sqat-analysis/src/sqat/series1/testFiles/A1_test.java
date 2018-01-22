@@ -31,7 +31,7 @@ public abstract class Square {
 	 * @return <code>true</code> iff all occupants of this square have this
 	 *         square listed as the square they are currently occupying.
 	 */
-	protected final boolean invariant() 
+	protected final boolean invariant(int a, int b, int c, float d, boolean e) 
 	{
 		for (Unit occupant : occupants) {
 			if (occupant.getSquare() != this) {
